@@ -1,0 +1,73 @@
+{
+  "id": "2025-11-24T12-06-08-725Z",
+  "status": "DONE",
+  "topic": "night time spirals after baby sleeps ",
+  "count": 2,
+  "mode": "mommarketing",
+  "momConfig": {
+    "audience": "first_time_newborn",
+    "stylePreset": "night_instead_of_sleeping",
+    "aspectRatio": "3:4",
+    "model": "openrouter-sonnet-4.5",
+    "basePrompt": "night time spirals after baby sleeps "
+  },
+  "steps": [
+    {
+      "name": "prompts",
+      "status": "done"
+    },
+    {
+      "name": "images",
+      "status": "done"
+    },
+    {
+      "name": "composing",
+      "status": "done"
+    },
+    {
+      "name": "publishing",
+      "status": "pending"
+    }
+  ],
+  "posts": [
+    {
+      "index": 0,
+      "momPost": {
+        "id": "night_spiral_1",
+        "audience": "first_time_newborn",
+        "basePrompt": "night time spirals after baby sleeps ",
+        "stylePreset": "night_instead_of_sleeping",
+        "aspectRatio": "3:4",
+        "model": "openrouter-sonnet-4.5",
+        "overlayTitle": "THINGS I DO AT NIGHT INSTEAD OF SLEEPING",
+        "overlaySubtitle": "First-Time Mom Edition 🌙",
+        "hook": "Stare at the baby monitor. Check if they're breathing. Check again. Wonder if I'll ever sleep normally again.",
+        "imagePrompt": "Soft, minimalist vector illustration showing a phone screen glowing in darkness, surrounded by floating thought bubbles containing simple icons: baby monitor, clock showing 3am, social media scroll, online shopping cart. Muted navy and lavender color palette.",
+        "caption": "• Stare at my sleeping baby through the monitor\n• Google \"is it normal if baby [insert everything]\"\n• Scroll through 372 photos of baby from today\n• Plan tomorrow's schedule I won't follow\n• Wonder if I'm doing any of this right\n• Panic-buy baby items at 3am\n\n→ Dear mama, this midnight spiral? It's not just you. Your 3am worries don't make you a bad mom - they make you a mom who cares deeply. That racing mind is carrying so much love and responsibility.\n\nTake a slow breath with me. Just one. Your baby is sleeping. You're doing better than you think. 💜",
+        "cta": "Join MomMirror for gentle 3-minute night-time check-ins when your thoughts won't quiet down."
+      },
+      "rawImageUrl": "/runs/2025-11-24T12-06-08-725Z/raw-0.png",
+      "finalImageUrl": "/runs/2025-11-24T12-06-08-725Z/final-0.jpg"
+    },
+    {
+      "index": 1,
+      "momPost": {
+        "id": "night_spiral_2",
+        "audience": "first_time_newborn",
+        "basePrompt": "night time spirals after baby sleeps ",
+        "stylePreset": "night_instead_of_sleeping",
+        "aspectRatio": "3:4",
+        "model": "openrouter-sonnet-4.5",
+        "overlayTitle": "THE 2AM MOM THOUGHTS",
+        "overlaySubtitle": "When Everyone Else Is Sleeping 🌑",
+        "hook": "The house is quiet but my mind won't stop replaying every tiny moment, every what-if from today.",
+        "imagePrompt": "Abstract, peaceful vector design with a large moon phase diagram in soft whites and teals, surrounded by gentle swirling thought bubbles and stars. Calming nighttime palette with deep blues and silver accents.",
+        "caption": "Tonight's mental tabs open:\n• Did I stimulate baby enough today?\n• Should I wake them to feed?\n• What if they get sick?\n• Am I bonding enough?\n• Will I ever feel like myself again?\n• *checks 14 developmental milestone lists*\n\nSweet mama, your love for your baby is so big it keeps you awake. But these spinning thoughts? They're part of learning to be a mom, not signs you're failing at it.\n\nInstead of fighting the night spiral, let's breathe together. Your baby is safe. Tomorrow is a new day. And you're exactly the mom your little one needs. ✨",
+        "cta": "Download MomMirror for a gentle companion during those quiet night hours.",
+        "safetyFooter": "If anxiety is keeping you awake most nights, it's okay to reach out to your healthcare provider. You deserve support. 💗"
+      },
+      "rawImageUrl": "/runs/2025-11-24T12-06-08-725Z/raw-1.png",
+      "finalImageUrl": "/runs/2025-11-24T12-06-08-725Z/final-1.jpg"
+    }
+  ]
+}

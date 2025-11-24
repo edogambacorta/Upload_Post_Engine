@@ -1,0 +1,30 @@
+[
+  {
+    "id": "sleep_guilt_01",
+    "audience": "first_time_newborn",
+    "basePrompt": "baby sleep tips",
+    "stylePreset": "infographic",
+    "aspectRatio": "3:4",
+    "model": "openrouter-sonnet-4.5",
+    "overlayTitle": "Your Sleep Matters Too",
+    "overlaySubtitle": "When everyone says \"sleep when baby sleeps\" but your brain won't shut off",
+    "hook": "Lying awake at 3am, exhausted but unable to sleep, while your baby finally drifts off. The anxiety of \"what if they wake up the moment I close my eyes?\"",
+    "imagePrompt": "Soft watercolor illustration of a bedroom window at dawn, with gentle morning light filtering through sheer curtains. A small potted plant on the windowsill casts a peaceful shadow. Pastel teals and coral colors blend together in a calming gradient.",
+    "caption": "That racing mind while your baby sleeps isn't your fault. Your body is in survival mode, and those midnight anxiety spirals are so normal they should be in parenting books. Instead of fighting your alertness, try this: Give yourself permission for a 3-minute \"sleep reset.\" Wrap yourself in something cozy, put one hand on your heart, and just breathe. No pressure to sleep. Just rest. Your body remembers how - it's just forgotten temporarily. You don't need to become a perfect sleeper. You just need these tiny moments of peace to remind your nervous system that it's safe to rest.",
+    "cta": "Start your gentle 3-minute reset"
+  },
+  {
+    "id": "sleep_cycle_02",
+    "audience": "first_time_newborn",
+    "basePrompt": "baby sleep tips",
+    "stylePreset": "infographic",
+    "aspectRatio": "3:4",
+    "model": "openrouter-sonnet-4.5",
+    "overlayTitle": "When Baby's Sleep is Chaos",
+    "overlaySubtitle": "Because no one warned you about the 4-month sleep regression",
+    "hook": "The moment you finally figured out a routine, everything changed. Again. Now you're wondering if you did something wrong.",
+    "imagePrompt": "Abstract circular pattern suggesting a gentle sleep cycle, with flowing lines in soft coral and teal creating a protective spiral shape. Organic shapes like leaves or petals float around the edges, suggesting growth and natural rhythms.",
+    "caption": "First: You didn't break your baby. Sleep regressions are developmental leaps - their brains are literally growing overnight. It feels like chaos because it is chaos. But here's what helped other moms: Instead of forcing a schedule, try tracking your baby's natural patterns for just 3 minutes each morning. Notice when they're naturally sleepier. Work with their rhythm, not against it. Your instincts are better than any sleep training book. This phase will pass, and you're doing so much better than you think.",
+    "cta": "Start your 3-minute morning check-in"
+  }
+]
