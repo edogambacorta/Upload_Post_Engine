@@ -12,6 +12,12 @@ const DEFAULT_TEXT_LAYOUT = {
     top: CANVAS_HEIGHT - 240,
     width: CANVAS_WIDTH - 120,
 };
+const DEFAULT_TEXT_STYLE = {
+    fontSize: 32,
+    fill: '#1a1a1a',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    textAlign: 'center' as const,
+};
 const TEXT_SAFE_MARGIN = 48;
 
 const decodeHtml = (value: string) => {
@@ -43,6 +49,18 @@ const getTextLayout = (slide?: Slide) => {
         CANVAS_HEIGHT - TEXT_SAFE_MARGIN - 160
     );
     return { left, top, width };
+};
+
+const getTextInitialProps = (slide?: Slide) => {
+    const layout = getTextLayout(slide);
+    const style = slide?.textBox;
+    return {
+        ...layout,
+        fontSize: style?.fontSize ?? DEFAULT_TEXT_STYLE.fontSize,
+        fill: style?.fill ?? DEFAULT_TEXT_STYLE.fill,
+        backgroundColor: style?.backgroundColor ?? DEFAULT_TEXT_STYLE.backgroundColor,
+        textAlign: style?.textAlign ?? DEFAULT_TEXT_STYLE.textAlign,
+    };
 };
 
 interface PreviewPanelProps {
@@ -152,7 +170,6 @@ export function PreviewPanel({ onCanvasReady, onTextSelected }: PreviewPanelProp
             hasSlide: !!selectedSlide,
             slideId: selectedSlide?.id,
             imageUrl: selectedSlide?.imageUrl,
-            text: selectedSlide?.text
         });
 
         const canvas = fabricCanvasRef.current;
@@ -183,7 +200,7 @@ export function PreviewPanel({ onCanvasReady, onTextSelected }: PreviewPanelProp
         let textSyncFrame: number | null = null;
         let imageSyncFrame: number | null = null;
         const slideId = selectedSlide.id;
-        const textLayout = getTextLayout(selectedSlide);
+        const textProps = getTextInitialProps(selectedSlide);
         const slideText = normalizeSlideText(selectedSlide.text) || 'Your text here';
 
         const syncTextToStore = (textbox: fabric.Textbox) => {
@@ -194,9 +211,13 @@ export function PreviewPanel({ onCanvasReady, onTextSelected }: PreviewPanelProp
                     updates: {
                         text: textbox.text || '',
                         textBox: {
-                            left: textbox.left ?? textLayout.left,
-                            top: textbox.top ?? textLayout.top,
-                            width: textbox.width ?? textLayout.width,
+                            left: textbox.left ?? textProps.left,
+                            top: textbox.top ?? textProps.top,
+                            width: textbox.width ?? textProps.width,
+                            fontSize: textbox.fontSize ?? DEFAULT_TEXT_STYLE.fontSize,
+                            fill: (textbox.fill as string) ?? DEFAULT_TEXT_STYLE.fill,
+                            backgroundColor: (textbox.backgroundColor as string) ?? DEFAULT_TEXT_STYLE.backgroundColor,
+                            textAlign: (textbox.textAlign as 'left' | 'center' | 'right') ?? DEFAULT_TEXT_STYLE.textAlign,
                         },
                     },
                 },
@@ -329,17 +350,17 @@ export function PreviewPanel({ onCanvasReady, onTextSelected }: PreviewPanelProp
 
         // Add text box
         const textBox = new fabric.Textbox(slideText, {
-            left: textLayout.left,
-            top: textLayout.top,
-            width: textLayout.width,
-            fontSize: 32,
+            left: textProps.left,
+            top: textProps.top,
+            width: textProps.width,
+            fontSize: textProps.fontSize,
             fontWeight: 600,
-            fill: '#1a1a1a',
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            fill: textProps.fill,
+            backgroundColor: textProps.backgroundColor,
             padding: 24,
             editable: true,
             selectable: true,
-            textAlign: 'center',
+            textAlign: textProps.textAlign,
         });
 
         canvas.add(textBox);
@@ -377,10 +398,8 @@ export function PreviewPanel({ onCanvasReady, onTextSelected }: PreviewPanelProp
     }, [
         selectedSlide?.id,
         selectedSlide?.imageUrl,
-        selectedSlide?.text,
-        selectedSlide?.textBox,
-        selectedSlide?.imageTransform,
         onTextSelected,
+        dispatch,
     ]);
 
     // Handle edit mode changes

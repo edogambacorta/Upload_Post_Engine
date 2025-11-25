@@ -19,6 +19,10 @@ export interface Slide {
         left: number;
         top: number;
         width: number;
+        fontSize?: number;
+        fill?: string;
+        backgroundColor?: string;
+        textAlign?: 'left' | 'center' | 'right';
     };
     imageTransform?: {
         left: number;

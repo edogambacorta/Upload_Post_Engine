@@ -44,11 +44,18 @@ export function StylePanel({ fabricCanvas, selectedText }: StylePanelProps) {
         }
     }, [selectedText, editMode]);
 
+    const fireModified = () => {
+        if (fabricCanvas && selectedText) {
+            fabricCanvas.fire('object:modified', { target: selectedText });
+        }
+    };
+
     const handleTextColorChange = (color: string) => {
         setTextColor(color);
         if (selectedText && fabricCanvas) {
             selectedText.set('fill', color);
             fabricCanvas.renderAll();
+            fireModified();
         }
     };
 
@@ -57,6 +64,7 @@ export function StylePanel({ fabricCanvas, selectedText }: StylePanelProps) {
         if (selectedText && fabricCanvas) {
             selectedText.set('fontSize', size);
             fabricCanvas.renderAll();
+            fireModified();
         }
     };
 
@@ -78,6 +86,7 @@ export function StylePanel({ fabricCanvas, selectedText }: StylePanelProps) {
                 const rgba = `rgba(${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)}, ${opacity / 100})`;
                 selectedText.set('backgroundColor', rgba);
                 fabricCanvas.renderAll();
+                fireModified();
             }
         }
     };
@@ -86,6 +95,7 @@ export function StylePanel({ fabricCanvas, selectedText }: StylePanelProps) {
         if (selectedText && fabricCanvas) {
             selectedText.set('textAlign', align);
             fabricCanvas.renderAll();
+            fireModified();
         }
     };
 
@@ -104,6 +114,8 @@ export function StylePanel({ fabricCanvas, selectedText }: StylePanelProps) {
 
         if (selectedText && fabricCanvas) {
             selectedText.set('fill', text);
+            fabricCanvas.renderAll();
+            fireModified();
             applyBackgroundColor(bg, opacity);
         }
     };
