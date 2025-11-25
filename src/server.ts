@@ -139,13 +139,15 @@ app.post('/api/generate-draft', async (req, res) => {
         }
 
         // Map frontend config to service config
+        const requestedCount = typeof config.count === 'number' && config.count > 0 ? config.count : 1;
+
         const serviceConfig = {
             audience: config.audience,
-            stylePreset: 'custom_infographic' as any, // Default or passed from frontend
+            stylePreset: 'custom_infographic' as any,
             aspectRatio: '3:4' as any,
             model: config.model,
             basePrompt: config.topic,
-            count: 1 // Generating one draft for now, or multiple if needed
+            count: requestedCount,
         };
 
         const posts = await generateMomMarketingPrompts(serviceConfig);

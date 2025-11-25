@@ -1,52 +1,106 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useStudio } from '../../../lib/studio/store';
-import { Zap, List, Grid, CheckCircle, ArrowRight } from 'lucide-react';
+import { Zap, Loader2, MessageSquare, Users, Target, Type } from 'lucide-react';
+import { useStudio } from '@/lib/studio/store';
+import { createSingleSlideFromPost, createSlideshowFromPost } from '@/lib/studio/slideUtils';
+import type { MomPost } from '@/lib/studio/types';
+
+interface RatedMomPost extends MomPost {
+    rating?: number;
+}
+
+const audienceOptions = [
+    { value: '', label: 'Select Audience...' },
+    { value: 'pregnant_anxious', label: 'Pregnant & Anxious' },
+    { value: 'first_time_newborn', label: 'First-time Mom / Newborn' },
+    { value: 'burned_out_parent', label: 'Burned-out Parent' },
+    { value: 'female_overwhelm', label: 'General Overwhelm' },
+];
+
+const STORAGE_KEY = 'studio_batch_ideas';
 
 export function BatchGenerator() {
-    const { dispatch } = useStudio();
     const navigate = useNavigate();
-    const [theme, setTheme] = useState('');
-    const [count, setCount] = useState(10);
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [generatedTopics, setGeneratedTopics] = useState<string[]>([]);
-    const [selectedTopics, setSelectedTopics] = useState<Set<number>>(new Set());
-
-    const handleGenerateTopics = () => {
-        setIsGenerating(true);
-        // Mock generation
-        setTimeout(() => {
-            const topics = Array.from({ length: count }, (_, i) => `${theme} - Angle ${i + 1}`);
-            setGeneratedTopics(topics);
-            setIsGenerating(false);
-        }, 1500);
-    };
-
-    const toggleTopic = (index: number) => {
-        const newSelected = new Set(selectedTopics);
-        if (newSelected.has(index)) {
-            newSelected.delete(index);
-        } else {
-            newSelected.add(index);
+    const { dispatch, state } = useStudio();
+    const [topic, setTopic] = useState(state.topic || '');
+    const [audience, setAudience] = useState(state.audience || '');
+    const [model, setModel] = useState(state.llmModel || 'openrouter-gpt-4.1');
+    const [count, setCount] = useState(6);
+    const [ideas, setIdeas] = useState<RatedMomPost[]>(() => {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return [];
+            return JSON.parse(raw);
+        } catch {
+            return [];
         }
-        setSelectedTopics(newSelected);
+    });
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [expandedId, setExpandedId] = useState<string | null>(null);
+
+    const handleGenerate = async () => {
+        if (!topic || !audience) return;
+        setIsGenerating(true);
+        setError(null);
+        try {
+            const response = await fetch('http://localhost:3000/api/generate-draft', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    topic,
+                    audience,
+                    model,
+                    count,
+                }),
+            });
+            if (!response.ok) {
+                throw new Error('Failed to generate ideas');
+            }
+            const data = await response.json();
+            const newIdeas: RatedMomPost[] = (data.posts || []).map((post: MomPost) => ({
+                ...post,
+                rating: 0,
+            }));
+            setIdeas(newIdeas);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(newIdeas));
+        } catch (err) {
+            console.error(err);
+            setError((err as Error).message);
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
-    const handleCreateContent = () => {
-        if (selectedTopics.size === 0) return;
+    const useIdea = (post: RatedMomPost, composition: 'single' | 'slideshow') => {
+        const slides =
+            composition === 'single'
+                ? [createSingleSlideFromPost(post)]
+                : createSlideshowFromPost(post);
 
-        // For now, just take the first selected topic and go to editor
-        // In a real batch flow, we'd queue them all up
-        const firstIndex = Array.from(selectedTopics)[0];
-        const topic = generatedTopics[firstIndex];
-
+        dispatch({ type: 'SET_MODE', payload: 'infographic' });
+        dispatch({ type: 'SET_COMPOSITION', payload: composition });
         dispatch({ type: 'SET_TOPIC', payload: topic });
-        dispatch({ type: 'SET_VIEW', payload: 'editor' });
+        dispatch({ type: 'SET_AUDIENCE', payload: audience });
+        dispatch({ type: 'SET_SLIDES', payload: slides });
+        dispatch({ type: 'SET_SELECTED_SLIDE', payload: slides[0]?.id ?? null });
+        dispatch({ type: 'SET_PREVIEW_MODE', payload: 'prompt' });
+
         navigate('/studio/editor');
     };
 
+    const handleRate = (postId: string, rating: number) => {
+        setIdeas((prev) => {
+            const next = prev.map((idea) =>
+                (idea.id || '') === postId ? { ...idea, rating } : idea
+            );
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+            return next;
+        });
+    };
+
     return (
-        <div className="min-h-screen bg-gray-950 p-8">
+        <div className="batch-generator min-h-screen bg-gray-950 p-8">
             <div className="max-w-6xl mx-auto">
                 <div className="flex items-center justify-between mb-8">
                     <div>
@@ -54,7 +108,9 @@ export function BatchGenerator() {
                             <Zap className="w-8 h-8 text-blue-500" />
                             Batch Generator
                         </h1>
-                        <p className="text-gray-400 mt-2">Turn one theme into dozens of posts instantly.</p>
+                        <p className="text-gray-400 mt-2">
+                            Turn one master prompt into multiple ready-to-use post ideas.
+                        </p>
                     </div>
                     <button
                         onClick={() => navigate('/studio')}
@@ -65,113 +121,190 @@ export function BatchGenerator() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Left: Configuration */}
-                    <div className="lg:col-span-1 space-y-6">
-                        <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-                            <h2 className="text-lg font-semibold text-white mb-4">Configuration</h2>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm text-gray-400 mb-1">Core Theme / Topic</label>
-                                    <input
-                                        type="text"
-                                        value={theme}
-                                        onChange={(e) => setTheme(e.target.value)}
-                                        placeholder="e.g. Mom Guilt"
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm text-gray-400 mb-1">Number of Posts</label>
-                                    <div className="flex items-center gap-4">
-                                        <input
-                                            type="range"
-                                            min="5"
-                                            max="50"
-                                            step="5"
-                                            value={count}
-                                            onChange={(e) => setCount(parseInt(e.target.value))}
-                                            className="flex-1 accent-blue-500"
-                                        />
-                                        <span className="text-white font-mono w-8 text-right">{count}</span>
-                                    </div>
-                                </div>
-
-                                <button
-                                    onClick={handleGenerateTopics}
-                                    disabled={!theme || isGenerating}
-                                    className={`w-full py-3 rounded-lg font-bold text-white transition-all ${!theme || isGenerating
-                                            ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                                            : 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-900/20'
-                                        }`}
-                                >
-                                    {isGenerating ? 'Generating Ideas...' : 'Generate Topics'}
-                                </button>
+                    <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6 space-y-6">
+                        <div className="space-y-2">
+                            <p className="text-xs font-semibold tracking-wide text-gray-500 uppercase flex items-center gap-2">
+                                <Target className="w-4 h-4" />
+                                Brief & Settings
+                            </p>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-white flex items-center gap-2">
+                                    <MessageSquare className="w-4 h-4 text-blue-400" />
+                                    Topic / Core Idea
+                                </label>
+                                <textarea
+                                    value={topic}
+                                    onChange={(e) => setTopic(e.target.value)}
+                                    placeholder="e.g. Mom guilt at midnight feedings..."
+                                    className="w-full h-28 bg-gray-850 border border-gray-700 rounded-xl p-3 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                />
                             </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-white flex items-center gap-2">
+                                    <Users className="w-4 h-4 text-pink-400" />
+                                    Target Audience
+                                </label>
+                                <select
+                                    value={audience}
+                                    onChange={(e) => setAudience(e.target.value)}
+                                    className="w-full bg-gray-850 border border-gray-700 rounded-xl p-3 text-white text-sm focus:ring-2 focus:ring-blue-500"
+                                >
+                                    {audienceOptions.map((opt) => (
+                                        <option key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-white flex items-center gap-2">
+                                    <Type className="w-4 h-4 text-purple-400" />
+                                    LLM Model (Text Ideas)
+                                </label>
+                                <select
+                                    value={model}
+                                    onChange={(e) => setModel(e.target.value)}
+                                    className="w-full bg-gray-850 border border-gray-700 rounded-xl p-3 text-white text-sm focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="openrouter-gpt-4.1">ChatGPT 4.1 (Fast)</option>
+                                    <option value="openrouter-gpt-5.1-thinking">GPT 5.1 Thinking (Smart)</option>
+                                    <option value="openrouter-sonnet-4.5">Claude Sonnet 4.5 (Creative)</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-white">Number of Ideas</label>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="range"
+                                        min={3}
+                                        max={12}
+                                        value={count}
+                                        onChange={(e) => setCount(Number(e.target.value))}
+                                        className="flex-1 accent-blue-500"
+                                    />
+                                    <span className="text-white font-mono">{count}</span>
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleGenerate}
+                                disabled={!topic || !audience || isGenerating}
+                                className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${!topic || !audience || isGenerating
+                                    ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                                    : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-blue-900/20'
+                                    }`}
+                            >
+                                {isGenerating ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Generating
+                                    </>
+                                ) : (
+                                    'Generate Ideas'
+                                )}
+                            </button>
+                            {error && <p className="text-sm text-red-400">{error}</p>}
                         </div>
                     </div>
 
-                    {/* Right: Results */}
                     <div className="lg:col-span-2">
-                        {generatedTopics.length > 0 ? (
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                                        <List className="w-5 h-5 text-gray-400" />
-                                        Generated Topics
-                                    </h2>
-                                    <button
-                                        onClick={() => setSelectedTopics(new Set(generatedTopics.map((_, i) => i)))}
-                                        className="text-sm text-blue-400 hover:text-blue-300 font-medium"
-                                    >
-                                        Select All
-                                    </button>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {generatedTopics.map((topic, index) => (
-                                        <div
-                                            key={index}
-                                            onClick={() => toggleTopic(index)}
-                                            className={`bg-gray-900 border p-4 rounded-lg transition-colors group cursor-pointer ${selectedTopics.has(index) ? 'border-blue-500 bg-blue-500/10' : 'border-gray-800 hover:border-blue-500/50'
-                                                }`}
-                                        >
-                                            <div className="flex justify-between items-start mb-2">
-                                                <span className="text-xs font-medium text-blue-400 bg-blue-400/10 px-2 py-1 rounded">
-                                                    {index % 3 === 0 ? 'Carousel' : 'Infographic'}
-                                                </span>
-                                                <div className={`w-5 h-5 rounded-full border-2 transition-colors flex items-center justify-center ${selectedTopics.has(index) ? 'border-blue-500 bg-blue-500' : 'border-gray-700 group-hover:border-blue-500'
-                                                    }`}>
-                                                    {selectedTopics.has(index) && <CheckCircle className="w-3 h-3 text-white" />}
-                                                </div>
-                                            </div>
-                                            <h3 className="text-white font-medium mb-1">{topic}</h3>
-                                            <p className="text-xs text-gray-500 line-clamp-2">
-                                                Suggested angle for this post based on the core theme...
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="fixed bottom-8 right-8">
-                                    <button
-                                        onClick={handleCreateContent}
-                                        disabled={selectedTopics.size === 0}
-                                        className={`font-bold py-4 px-8 rounded-full shadow-xl flex items-center gap-3 transition-transform hover:scale-105 ${selectedTopics.size === 0
-                                                ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                                                : 'bg-green-600 hover:bg-green-500 text-white shadow-green-900/30'
-                                            }`}
-                                    >
-                                        Generate Content for Selected ({selectedTopics.size})
-                                        <ArrowRight className="w-5 h-5" />
-                                    </button>
-                                </div>
+                        {ideas.length === 0 ? (
+                            <div className="h-full flex flex-col items-center justify-center border-2 border-dashed border-gray-800 rounded-2xl p-12 text-center text-gray-500">
+                                <Zap className="w-16 h-16 mb-4 opacity-30" />
+                                <p className="text-lg font-medium text-white mb-2">No ideas yet</p>
+                                <p className="text-sm text-gray-400">Fill out the brief and click “Generate Ideas”.</p>
                             </div>
                         ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-gray-500 border-2 border-dashed border-gray-800 rounded-xl p-12">
-                                <Grid className="w-16 h-16 mb-4 opacity-20" />
-                                <p className="text-lg">Enter a theme to generate post ideas</p>
+                            <div className="space-y-4">
+                                {ideas.map((idea, idx) => {
+                                    const id = idea.id || String(idx);
+                                    const isExpanded = expandedId === id;
+
+                                    return (
+                                        <div
+                                            key={id}
+                                            className="bg-gray-900 rounded-2xl border border-gray-800 p-5 space-y-3"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                    Idea {idx + 1}
+                                                </span>
+                                                <button
+                                                    onClick={() => setExpandedId(isExpanded ? null : id)}
+                                                    className="text-xs text-gray-400 hover:text-gray-200"
+                                                >
+                                                    {isExpanded ? 'Collapse' : 'Details'}
+                                                </button>
+                                            </div>
+
+                                            {/* Compact content (always visible) */}
+                                            <div className="space-y-2">
+                                                <p className="text-sm font-semibold text-gray-400">Hook</p>
+                                                <p className="text-white line-clamp-3">{idea.hook}</p>
+                                            </div>
+
+                                            {/* Rating row (always visible) */}
+                                            <div className="flex items-center justify-between mt-2">
+                                                <div className="flex items-center gap-1">
+                                                    {[1, 2, 3, 4, 5].map((star) => (
+                                                        <button
+                                                            key={star}
+                                                            onClick={() => handleRate(id, star)}
+                                                            className={`w-6 h-6 rounded-full border border-gray-600 flex items-center justify-center text-xs ${(idea.rating || 0) >= star
+                                                                    ? 'bg-yellow-400 text-black border-yellow-400'
+                                                                    : 'bg-gray-800 text-gray-400'
+                                                                }`}
+                                                        >
+                                                            {star}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <span className="text-xs text-gray-500">
+                                                    {idea.rating ? `Rated ${idea.rating}/5` : 'Not rated'}
+                                                </span>
+                                            </div>
+
+                                            {/* Expanded body */}
+                                            {isExpanded && (
+                                                <div className="space-y-3 pt-3 border-t border-gray-800 mt-3">
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm font-semibold text-gray-400">Caption</p>
+                                                        <p className="text-gray-200 whitespace-pre-line text-sm">
+                                                            {idea.caption}
+                                                        </p>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm font-semibold text-gray-400">CTA</p>
+                                                        <p className="text-white text-sm">{idea.cta}</p>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm font-semibold text-gray-400">Image Prompt</p>
+                                                        <p className="text-xs text-purple-200 font-mono whitespace-pre-wrap">
+                                                            {idea.imagePrompt}
+                                                        </p>
+                                                    </div>
+
+                                                    {/* 🔥 Explicit creation options */}
+                                                    <div className="flex flex-wrap gap-2 pt-2">
+                                                        <button
+                                                            onClick={() => useIdea(idea, 'single')}
+                                                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white"
+                                                        >
+                                                            Create Single Image
+                                                        </button>
+                                                        <button
+                                                            onClick={() => useIdea(idea, 'slideshow')}
+                                                            className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-purple-500 text-purple-300 hover:bg-purple-500/10"
+                                                        >
+                                                            Create Slideshow
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

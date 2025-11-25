@@ -58,3 +58,20 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
+/* Batch generator selects */
+.batch-generator select {
+  background-color: #0f172a;
+  color: #f8fafc;
+  border-color: #1f2937;
+}
+
+.batch-generator select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+.batch-generator select option {
+  background-color: #0f172a;
+  color: #f8fafc;
+}

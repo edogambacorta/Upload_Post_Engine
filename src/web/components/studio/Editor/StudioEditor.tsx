@@ -11,7 +11,12 @@ export function StudioEditor() {
     const [fabricCanvas, setFabricCanvas] = useState<fabric.Canvas | null>(null);
     const [selectedText, setSelectedText] = useState<fabric.Textbox | null>(null);
     const { state, dispatch } = useStudio();
-    const { slides, selectedSlideId } = state;
+    const { slides, selectedSlideId, composition, topic } = state;
+
+    // Derive mode info
+    const isSlideshow = composition === 'slideshow' || slides.length > 1;
+    const activeIndex = slides.findIndex((s) => s.id === selectedSlideId);
+    const displayIndex = activeIndex >= 0 ? activeIndex + 1 : 1;
     const [searchParams] = useSearchParams();
     const runId = searchParams.get('runId');
     const [isRunLoading, setIsRunLoading] = useState(false);
@@ -55,6 +60,7 @@ export function StudioEditor() {
                     payload: payload.audience || state.audience || 'first_time_newborn',
                 });
                 dispatch({ type: 'SET_MODE', payload: payload.postType });
+                dispatch({ type: 'SET_COMPOSITION', payload: payload.composition });
                 dispatch({ type: 'SET_SLIDES', payload: payload.slides });
                 const firstSlideId = payload.slides[0]?.id ?? null;
                 if (firstSlideId) {
@@ -88,14 +94,36 @@ export function StudioEditor() {
                     Failed to load run "{runId}": {runLoadError}. Try returning to the dashboard.
                 </div>
             )}
-            <div className="grid grid-cols-12 flex-1 bg-gray-950 overflow-hidden">
+
+            {/* 🔥 Mode banner */}
+            <div className="border-b border-gray-800 px-4 py-2 flex items-center justify-between bg-gray-950/95">
+                <div className="flex items-center gap-2">
+                    <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${isSlideshow
+                            ? 'bg-purple-900/60 text-purple-200 border border-purple-500/40'
+                            : 'bg-emerald-900/60 text-emerald-200 border border-emerald-500/40'
+                            }`}
+                    >
+                        {isSlideshow ? 'Slideshow' : 'Single Image'}
+                    </span>
+                    {isSlideshow && (
+                        <span className="text-xs text-gray-400">
+                            Editing slide {displayIndex} of {slides.length}
+                        </span>
+                    )}
+                </div>
+                <div className="text-xs text-gray-500">
+                    Topic: <span className="text-gray-200">{topic || '—'}</span>
+                </div>
+            </div>
+            <div className="grid grid-cols-12 flex-1 bg-gray-950 overflow-hidden min-h-0">
                 {/* Left Panel: Brief & Settings */}
-                <div className="col-span-3 h-full border-r border-gray-800">
+                <div className="col-span-3 h-full min-h-0 border-r border-gray-800">
                     <BriefPanel />
                 </div>
 
                 {/* Center Panel: Preview & Editor */}
-                <div className="col-span-6 h-full">
+                <div className="col-span-6 h-full min-h-0">
                     <PreviewPanel
                         onCanvasReady={setFabricCanvas}
                         onTextSelected={setSelectedText}
@@ -103,7 +131,7 @@ export function StudioEditor() {
                 </div>
 
                 {/* Right Panel: Visual Style */}
-                <div className="col-span-3 h-full border-l border-gray-800">
+                <div className="col-span-3 h-full min-h-0 border-l border-gray-800">
                     <StylePanel
                         fabricCanvas={fabricCanvas}
                         selectedText={selectedText}

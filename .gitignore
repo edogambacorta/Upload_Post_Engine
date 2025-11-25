@@ -22,3 +22,6 @@ dist/
 
 # Misc
 coverage/
+
+# Run data
+data/runs/

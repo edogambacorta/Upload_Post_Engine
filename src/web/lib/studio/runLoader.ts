@@ -1,4 +1,4 @@
-import { PostType, Slide } from './types';
+import { PostType, Slide, CompositionMode } from './types';
 
 interface RunPost {
     index: number;
@@ -10,6 +10,9 @@ interface RunPost {
         hook?: string;
         cta?: string;
         imagePrompt?: string;
+        overlayTitle?: string;
+        overlaySubtitle?: string;
+        safetyFooter?: string;
     };
     prompt?: {
         caption?: string;
@@ -47,6 +50,7 @@ export interface RunHydrationPayload {
     topic: string;
     audience: string;
     postType: PostType;
+    composition: CompositionMode;
 }
 
 export async function fetchRunState(runId: string): Promise<RunStateResponse> {
@@ -73,7 +77,19 @@ export function normalizeRunToSlides(run: RunStateResponse): Slide[] {
             id: post.momPost?.id || `${run.id}-${index}`,
             role: inferRole(index, Math.max(total, 1)),
             text,
-            variationPrompt: post.momPost?.imagePrompt || post.prompt?.prompt || '',
+            variationPrompt: post.prompt?.prompt || '',
+            imagePrompt: post.momPost?.imagePrompt || post.prompt?.prompt || '',
+            meta: post.momPost
+                ? {
+                    overlayTitle: post.momPost.overlayTitle,
+                    overlaySubtitle: post.momPost.overlaySubtitle,
+                    hook: post.momPost.hook,
+                    caption: post.momPost.caption,
+                    cta: post.momPost.cta,
+                    safetyFooter: post.momPost.safetyFooter,
+                    imagePrompt: post.momPost.imagePrompt,
+                }
+                : undefined,
             imageUrl: resolveImageUrl(imagePath),
             status: imagePath ? 'done' : 'draft',
         };
@@ -85,11 +101,13 @@ export async function loadRunHydration(runId: string): Promise<RunHydrationPaylo
     const slides = normalizeRunToSlides(run);
 
     const postType: PostType = slides.length > 1 ? 'carousel' : 'infographic';
+    const composition: CompositionMode = slides.length > 1 ? 'slideshow' : 'single';
 
     return {
         slides,
         topic: run.topic || '',
         audience: run.momConfig?.audience || '',
         postType,
+        composition,
     };
 }

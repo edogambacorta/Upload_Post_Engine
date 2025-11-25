@@ -50,14 +50,30 @@ export function Dashboard() {
                 role: index === 0 ? 'hook' : index === run.posts.length - 1 ? 'cta' : 'insight',
                 text: post.momPost?.caption || post.momPost?.hook || '',
                 variationPrompt: post.momPost?.imagePrompt || '',
+                imagePrompt: post.momPost?.imagePrompt || '',
+                meta: post.momPost
+                    ? {
+                        overlayTitle: post.momPost.overlayTitle,
+                        overlaySubtitle: post.momPost.overlaySubtitle,
+                        hook: post.momPost.hook,
+                        caption: post.momPost.caption,
+                        cta: post.momPost.cta,
+                        safetyFooter: post.momPost.safetyFooter,
+                        imagePrompt: post.momPost.imagePrompt,
+                    }
+                    : undefined,
                 imageUrl: post.rawImageUrl ? `http://localhost:3000${post.rawImageUrl}` : '',
                 status: 'draft' as const
             }));
+
+            // 🔥 Infer composition from run
+            const isSlideshowRun = run.posts.length > 1;
 
             // Update store with run data
             dispatch({ type: 'SET_TOPIC', payload: run.topic || '' });
             dispatch({ type: 'SET_AUDIENCE', payload: run.momConfig?.audience || 'first_time_newborn' });
             dispatch({ type: 'SET_MODE', payload: 'infographic' });
+            dispatch({ type: 'SET_COMPOSITION', payload: isSlideshowRun ? 'slideshow' : 'single' });
             dispatch({ type: 'SET_SLIDES', payload: slides });
 
             // Navigate to editor with run ID in URL
@@ -67,14 +83,25 @@ export function Dashboard() {
         }
     };
 
+
     const handleCreate = (mode: 'infographic' | 'carousel' | 'batch') => {
         dispatch({ type: 'SET_MODE', payload: mode });
+
+        // 🔥 Set composition based on mode
+        if (mode === 'infographic') {
+            dispatch({ type: 'SET_COMPOSITION', payload: 'single' });
+        } else if (mode === 'carousel') {
+            dispatch({ type: 'SET_COMPOSITION', payload: 'slideshow' });
+        }
+        // batch mode doesn't set composition - user chooses in batch generator
+
         if (mode === 'batch') {
             navigate('/studio/batch');
         } else {
             navigate('/studio/editor');
         }
     };
+
 
     const loadScheduledPosts = async () => {
         setLoadingSchedule(true);
@@ -122,6 +149,24 @@ export function Dashboard() {
                         Create New
                     </h2>
 
+                    <div className="space-y-4">
+                        <button
+                            onClick={() => handleCreate('batch')}
+                            className="group relative overflow-hidden bg-gray-800 hover:bg-gray-700 p-6 rounded-xl text-left transition-all border border-gray-700 hover:border-blue-500/50"
+                        >
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <Zap className="w-24 h-24 text-blue-500" />
+                            </div>
+                            <div className="relative z-10">
+                                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                    <Zap className="w-5 h-5 text-blue-400" />
+                                </div>
+                                <h3 className="text-lg font-bold text-white mb-1">Batch Generator</h3>
+                                <p className="text-sm text-gray-400">Spin up multiple post ideas from one brief</p>
+                            </div>
+                        </button>
+                    </div>
+
                     <div className="grid gap-4">
                         <button
                             onClick={() => handleCreate('infographic')}
@@ -152,22 +197,6 @@ export function Dashboard() {
                                 </div>
                                 <h3 className="text-lg font-bold text-white mb-1">Carousel / Slideshow</h3>
                                 <p className="text-sm text-gray-400">Multi-slide stories with consistent scenes</p>
-                            </div>
-                        </button>
-
-                        <button
-                            onClick={() => handleCreate('batch')}
-                            className="group relative overflow-hidden bg-gray-800 hover:bg-gray-700 p-6 rounded-xl text-left transition-all border border-gray-700 hover:border-blue-500/50"
-                        >
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                <Zap className="w-24 h-24 text-blue-500" />
-                            </div>
-                            <div className="relative z-10">
-                                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                    <Zap className="w-5 h-5 text-blue-400" />
-                                </div>
-                                <h3 className="text-lg font-bold text-white mb-1">Batch Generator</h3>
-                                <p className="text-sm text-gray-400">Generate 10-50 posts from one topic</p>
                             </div>
                         </button>
                     </div>

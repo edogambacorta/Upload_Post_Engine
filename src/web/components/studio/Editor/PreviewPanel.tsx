@@ -1,9 +1,10 @@
 import { useStudio } from '../../../lib/studio/store';
-import { Image as ImageIcon, Type, Download, Share2 } from 'lucide-react';
+import { Image as ImageIcon, Type, Download, Share2, FileCode } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { useRef, useEffect, useId } from 'react';
 import * as fabric from 'fabric';
-import type { Slide } from '../../../lib/studio/types';
+import type { Slide, PreviewMode } from '../../../lib/studio/types';
+import { PromptModeView } from './PromptModeView';
 
 const CANVAS_WIDTH = 1080;
 const CANVAS_HEIGHT = 1350;
@@ -70,7 +71,7 @@ interface PreviewPanelProps {
 
 export function PreviewPanel({ onCanvasReady, onTextSelected }: PreviewPanelProps) {
     const { state, dispatch } = useStudio();
-    const { slides, selectedSlideId, editMode } = state;
+    const { slides, selectedSlideId, editMode, previewMode } = state;
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
     const textBoxRef = useRef<fabric.Textbox | null>(null);
@@ -81,6 +82,7 @@ export function PreviewPanel({ onCanvasReady, onTextSelected }: PreviewPanelProp
         slides.find((slide) => slide.id === selectedSlideId) ??
         (slides.length > 0 ? slides[0] : null);
     const isEmpty = !selectedSlide;
+    const isPromptMode = previewMode === 'prompt';
 
     useEffect(() => {
         if (!canvasRef.current) {
@@ -329,10 +331,11 @@ export function PreviewPanel({ onCanvasReady, onTextSelected }: PreviewPanelProp
                 }
 
                 canvas.add(img);
+                if ((canvas as any).sendToBack) {
+                    (canvas as any).sendToBack(img);
+                }
                 if (textBoxRef.current) {
-                    const tb = textBoxRef.current;
-                    canvas.remove(tb);
-                    canvas.add(tb);
+                    (textBoxRef.current as any).bringToFront?.();
                 }
 
                 canvas.renderAll();
@@ -364,6 +367,7 @@ export function PreviewPanel({ onCanvasReady, onTextSelected }: PreviewPanelProp
         });
 
         canvas.add(textBox);
+        (textBox as any).bringToFront?.();
         console.log('[PreviewPanel] Textbox added to canvas', {
             textLength: slideText.length,
             objectCount: canvas.getObjects().length,
@@ -466,17 +470,20 @@ export function PreviewPanel({ onCanvasReady, onTextSelected }: PreviewPanelProp
         }
     };
 
-    const handleModeSwitch = (newMode: 'text' | 'image') => {
-        dispatch({ type: 'SET_EDIT_MODE', payload: newMode });
+    const handlePreviewModeSwitch = (newMode: PreviewMode) => {
+        dispatch({ type: 'SET_PREVIEW_MODE', payload: newMode });
+        if (newMode === 'text' || newMode === 'image') {
+            dispatch({ type: 'SET_EDIT_MODE', payload: newMode });
+        }
     };
 
     return (
         <div className="h-full flex flex-col bg-gray-950 relative">
             {/* Toolbar */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-gray-900/90 backdrop-blur-sm p-1.5 rounded-full border border-gray-800 shadow-xl">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-gray-900/90 backdrop-blur-sm p-1.5 rounded-full border border-gray-800 shadow-xl">
                 <button
-                    onClick={() => handleModeSwitch('text')}
-                    className={`p-2 rounded-full transition-colors ${editMode === 'text'
+                    onClick={() => handlePreviewModeSwitch('text')}
+                    className={`p-2 rounded-full transition-colors ${previewMode === 'text'
                         ? 'bg-purple-600 text-white'
                         : 'hover:bg-gray-800 text-gray-400 hover:text-white'
                         }`}
@@ -485,14 +492,24 @@ export function PreviewPanel({ onCanvasReady, onTextSelected }: PreviewPanelProp
                     <Type className="w-4 h-4" />
                 </button>
                 <button
-                    onClick={() => handleModeSwitch('image')}
-                    className={`p-2 rounded-full transition-colors ${editMode === 'image'
+                    onClick={() => handlePreviewModeSwitch('image')}
+                    className={`p-2 rounded-full transition-colors ${previewMode === 'image'
                         ? 'bg-purple-600 text-white'
                         : 'hover:bg-gray-800 text-gray-400 hover:text-white'
                         }`}
                     title="Image Mode"
                 >
                     <ImageIcon className="w-4 h-4" />
+                </button>
+                <button
+                    onClick={() => handlePreviewModeSwitch('prompt')}
+                    className={`p-2 rounded-full transition-colors ${previewMode === 'prompt'
+                        ? 'bg-purple-600 text-white'
+                        : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                        }`}
+                    title="Prompt Mode"
+                >
+                    <FileCode className="w-4 h-4" />
                 </button>
                 <div className="w-px h-4 bg-gray-700 mx-1" />
                 <button
@@ -511,11 +528,13 @@ export function PreviewPanel({ onCanvasReady, onTextSelected }: PreviewPanelProp
                 </button>
             </div>
 
-            {/* Main Canvas */}
-            <div className="flex-1 flex items-center justify-center p-8 overflow-visible">
+            {/* Main Canvas / Prompt Overlay */}
+            <div className="flex-1 flex items-center justify-center p-8 overflow-visible relative">
                 <div
                     ref={previewRef}
-                    className="relative bg-white rounded-2xl shadow-2xl flex items-center justify-center overflow-visible"
+                    className={`relative bg-white rounded-2xl shadow-2xl flex items-center justify-center overflow-visible transition-opacity ${
+                        isPromptMode ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                    }`}
                     style={{ width: '540px', height: '675px' }}
                 >
                     {isEmpty && (
@@ -545,10 +564,15 @@ export function PreviewPanel({ onCanvasReady, onTextSelected }: PreviewPanelProp
                         style={{ width: '100%', height: '100%', opacity: isEmpty ? 0.1 : 1 }}
                     />
                 </div>
+                {isPromptMode && (
+                    <div className="absolute inset-0 z-20">
+                        <PromptModeView />
+                    </div>
+                )}
             </div>
 
             {/* Storyboard Strip */}
-            {slides.length > 1 && (
+            {previewMode === 'image' && slides.length > 1 && (
                 <div className="h-32 bg-gray-900 border-t border-gray-800 flex items-center px-4 gap-4 overflow-x-auto">
                     {slides.map((slide, index) => (
                         <button

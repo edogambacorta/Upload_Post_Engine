@@ -1,10 +1,11 @@
 import { useStudio } from '../../../lib/studio/store';
-import { Sparkles, Loader2, Target, Users, Type, MessageSquare, MonitorPlay } from 'lucide-react';
+import { Sparkles, Loader2, Target, Users, Type, MessageSquare } from 'lucide-react';
 import { MomPost } from '../../../lib/studio/types';
+import { createSingleSlideFromPost, createSlideshowFromPost } from '../../../lib/studio/slideUtils';
 
 export function BriefPanel() {
     const { state, dispatch } = useStudio();
-    const { topic, audience, isGenerating, llmModel, imageModel } = state;
+    const { topic, audience, isGenerating, llmModel, composition } = state;
 
     const handleGenerate = async () => {
         if (!topic || !audience) return;
@@ -32,43 +33,14 @@ export function BriefPanel() {
             const posts: MomPost[] = data.posts;
 
             if (posts && posts.length > 0) {
-                // For now, we just take the first post's content and split it into slides
-                // In a real app, we might let the user choose from multiple drafts
-                const post = posts[0];
+                const slides =
+                    composition === 'single'
+                        ? [createSingleSlideFromPost(posts[0])]
+                        : createSlideshowFromPost(posts[0]);
 
-                // Map MomPost fields to Slides
-                const newSlides = [
-                    {
-                        id: '1',
-                        role: 'hook' as const,
-                        text: post.hook,
-                        imageUrl: '',
-                        status: 'draft' as const
-                    },
-                    {
-                        id: '2',
-                        role: 'empathy' as const,
-                        text: post.caption.split('.')[0] + '.', // First sentence as empathy
-                        imageUrl: '',
-                        status: 'draft' as const
-                    },
-                    {
-                        id: '3',
-                        role: 'insight' as const,
-                        text: post.caption, // Full caption as insight/body
-                        imageUrl: '',
-                        status: 'draft' as const
-                    },
-                    {
-                        id: '4',
-                        role: 'cta' as const,
-                        text: post.cta,
-                        imageUrl: '',
-                        status: 'draft' as const
-                    }
-                ];
-
-                dispatch({ type: 'SET_SLIDES', payload: newSlides });
+                dispatch({ type: 'SET_SLIDES', payload: slides });
+                dispatch({ type: 'SET_SELECTED_SLIDE', payload: slides[0]?.id ?? null });
+                dispatch({ type: 'SET_PREVIEW_MODE', payload: 'prompt' });
             }
 
         } catch (error) {
@@ -145,22 +117,6 @@ export function BriefPanel() {
                         </select>
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm text-gray-300 flex items-center gap-2">
-                            <MonitorPlay className="w-4 h-4 text-green-400" />
-                            Image Model
-                        </label>
-                        <select
-                            value={imageModel}
-                            onChange={(e) => dispatch({ type: 'SET_IMAGE_MODEL', payload: e.target.value })}
-                            className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-sm text-white"
-                        >
-                            <option value="flux-schnell">Flux Schnell (Fastest)</option>
-                            <option value="nanobanana">Nano Banana (Balanced)</option>
-                            <option value="nanobanana-pro">Nano Banana Pro (High Quality)</option>
-                            <option value="seedream">Seedream Edit (Artistic)</option>
-                        </select>
-                    </div>
                 </div>
             </div>
 
