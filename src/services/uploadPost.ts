@@ -8,15 +8,22 @@ export type PublishResult = {
     error?: string;
 };
 
+type ScheduleSlot = {
+    postId: string;
+    scheduledDate?: string;
+};
+
 export async function publishImages(
     runId: string,
     images: ComposedImage[],
-    captions: string[] // Assuming captions match images by index
+    captions: string[], // Assuming captions match images by index
+    schedules?: ScheduleSlot[]
 ): Promise<PublishResult[][]> {
     const results: PublishResult[][] = [];
     const apiKey = process.env.UPLOAD_POST_API_KEY;
+    const dryRun = process.env.UPLOAD_POST_DRY_RUN !== 'false';
 
-    if (!apiKey) {
+    if (!apiKey && !dryRun) {
         console.warn('UPLOAD_POST_API_KEY not set, skipping publish');
         return images.map(() => []);
     }
@@ -32,11 +39,24 @@ export async function publishImages(
         // Since we are local, we might need to upload the file buffer.
 
         try {
-            // const fileBuffer = fs.readFileSync(image.finalPath);
-            // const blob = new Blob([fileBuffer]); // Node 20+ supports Blob
+            const schedule = schedules?.[i];
+            const scheduledDate = schedule?.scheduledDate;
+            const payloadPreview = {
+                postId: schedule?.postId ?? `${runId}-${i}`,
+                caption,
+                mediaPath: image.finalPath,
+                scheduled_date: scheduledDate ?? null,
+            };
+            console.log(`[UploadPost] Prepared payload for run ${runId}`, payloadPreview);
 
-            // Example: Upload to Instagram
-            // const response = await axios.post('https://api.upload-post.com/v1/post', {
+            if (dryRun) {
+                console.log('[UploadPost] Dry run enabled, not calling Upload-Post API.');
+            } else {
+                // const fileBuffer = fs.readFileSync(image.finalPath);
+                // const blob = new Blob([fileBuffer]); // Node 20+ supports Blob
+
+                // Example: Upload to Instagram
+                // const response = await axios.post('https://api.upload-post.com/v1/post', {
             //   platform: 'instagram',
             //   media: blob, // or url
             //   caption: caption
@@ -48,6 +68,8 @@ export async function publishImages(
             // Assuming we want to publish to both if configured. 
             // For now, let's just log it.
             console.log(`[Mock] Publishing ${image.finalPath} to Instagram/TikTok with caption: ${caption} (RunID: ${runId})`);
+
+            }
 
             imageResults.push({
                 platform: 'instagram',

@@ -34,6 +34,7 @@ export interface MomPost {
     caption: string;
     cta: string;
     safetyFooter?: string;
+    scheduledDate?: string;
 }
 
 export type RunStatus = 'PROMPTS' | 'IMAGES' | 'COMPOSING' | 'PUBLISHING' | 'DONE' | 'ERROR';
@@ -48,7 +49,7 @@ export type RunState = {
     status: RunStatus;
     topic: string; // Used as basePrompt for Mom runs
     count: number;
-    mode?: 'generic' | 'mommarketing';
+    mode?: 'generic' | 'mommarketing' | 'studio';
     momConfig?: {
         audience: AudienceSegment;
         stylePreset: MomStylePreset;
@@ -57,6 +58,7 @@ export type RunState = {
         imageModel?: ImageModelId;
         basePrompt: string;
     };
+    schedulePlan?: SchedulePlan;
     steps: RunStep[];
     posts: {
         index: number;
@@ -64,6 +66,7 @@ export type RunState = {
         momPost?: MomPost; // For Mom runs
         rawImageUrl?: string;
         finalImageUrl?: string;
+        scheduledDate?: string;
         publish?: {
             [key in 'tiktok' | 'instagram']?: { status: string; url?: string };
         };
@@ -78,7 +81,7 @@ export type RunInput = {
     autoPublish?: boolean;
     platforms?: ('tiktok' | 'instagram')[];
     // MomMirror specific
-    mode?: 'generic' | 'mommarketing';
+    mode?: 'generic' | 'mommarketing' | 'studio';
     momConfig?: {
         audience: AudienceSegment;
         stylePreset: MomStylePreset;
@@ -86,6 +89,12 @@ export type RunInput = {
         model: ModelId;
         imageModel?: ImageModelId;
     };
+    schedulePlan?: SchedulePlan;
+};
+
+export type SchedulePlan = {
+    startDate: string;
+    intervalHours: number;
 };
 
 const RUNS_DIR = path.resolve(process.cwd(), 'data', 'runs');
@@ -108,6 +117,7 @@ export class RunOrchestrator {
             count: input.count,
             mode: input.mode || 'generic',
             momConfig: input.momConfig ? { ...input.momConfig, basePrompt: input.topic } : undefined,
+            schedulePlan: input.schedulePlan,
             steps: [
                 { name: 'prompts', status: 'pending' },
                 { name: 'images', status: 'pending' },
@@ -167,7 +177,7 @@ export class RunOrchestrator {
         return runs.sort((a, b) => b.id.localeCompare(a.id));
     }
 
-    private saveRunState(runId: string, state: RunState) {
+    public saveRunState(runId: string, state: RunState) {
         this.activeRuns.set(runId, state);
         const runDir = path.join(RUNS_DIR, runId);
         if (!fs.existsSync(runDir)) {
@@ -181,6 +191,32 @@ export class RunOrchestrator {
         if (step) {
             step.status = status;
         }
+    }
+
+    private applySchedulePlan(state: RunState) {
+        if (!state.schedulePlan || !state.posts.length) {
+            return;
+        }
+
+        const slots = this.buildScheduleSlots(state.schedulePlan, state.posts.length);
+        state.posts.forEach((post, index) => {
+            if (!post.scheduledDate && slots[index]) {
+                post.scheduledDate = slots[index];
+            }
+        });
+    }
+
+    private buildScheduleSlots(plan: SchedulePlan, count: number) {
+        const start = new Date(plan.startDate);
+        if (!Number.isFinite(plan.intervalHours) || plan.intervalHours <= 0 || Number.isNaN(start.getTime())) {
+            return [];
+        }
+        const slots: string[] = [];
+        for (let i = 0; i < count; i += 1) {
+            const date = new Date(start.getTime() + i * plan.intervalHours * 60 * 60 * 1000);
+            slots.push(date.toISOString());
+        }
+        return slots;
     }
 
     private async runPipeline(runId: string, input: RunInput) {
@@ -203,12 +239,14 @@ export class RunOrchestrator {
             // Save prompts.json for Mom runs
             const runDir = path.join(RUNS_DIR, runId);
             fs.writeFileSync(path.join(runDir, 'prompts.json'), JSON.stringify(momPosts, null, 2));
+            this.applySchedulePlan(state);
         } else {
             const prompts = await generatePrompts(input.topic, input.count);
             state.posts = prompts.map((p, i) => ({
                 index: i,
                 prompt: p,
             }));
+            this.applySchedulePlan(state);
         }
 
         this.updateStep(state, 'prompts', 'done');
@@ -265,7 +303,11 @@ export class RunOrchestrator {
                 return `${p.prompt?.overlayTitle} - ${p.prompt?.overlaySubtitle}`;
             });
 
-            const publishResults = await publishImages(runId, composedImages, captions);
+            const schedules = state.posts.map(post => ({
+                postId: post.momPost?.id ?? String(post.index),
+                scheduledDate: post.scheduledDate,
+            }));
+            const publishResults = await publishImages(runId, composedImages, captions, schedules);
 
             publishResults.forEach((results, i) => {
                 if (state.posts[i]) {
@@ -286,6 +328,50 @@ export class RunOrchestrator {
         state.status = 'DONE';
         this.saveRunState(runId, state);
     }
+
+    setPostSchedule(runId: string, postId: string, scheduledDate: string) {
+        const state = this.getRunState(runId);
+        if (!state) {
+            throw new Error('Run not found');
+        }
+        const post = state.posts.find(p => p.momPost?.id === postId || String(p.index) === postId);
+        if (!post) {
+            throw new Error('Post not found');
+        }
+        post.scheduledDate = scheduledDate;
+        if (post.momPost) {
+            post.momPost.scheduledDate = scheduledDate;
+        }
+        this.saveRunState(runId, state);
+        return {
+            postId,
+            scheduledDate,
+        };
+    }
+
+    getPostSchedules(runId: string) {
+        const state = this.getRunState(runId);
+        if (!state) {
+            throw new Error('Run not found');
+        }
+        return state.posts.map(post => ({
+            postId: post.momPost?.id ?? String(post.index),
+            scheduledDate: post.scheduledDate,
+        }));
+    }
+
+    deleteRun(runId: string) {
+        const state = this.getRunState(runId);
+        if (!state) {
+            throw new Error('Run not found');
+        }
+        this.activeRuns.delete(runId);
+        const runDir = path.join(RUNS_DIR, runId);
+        if (fs.existsSync(runDir)) {
+            fs.rmSync(runDir, { recursive: true, force: true });
+        }
+    }
+
     async regenerateImages(runId: string, postIds?: string[]) {
         const state = this.getRunState(runId);
         if (!state || !state.momConfig) {

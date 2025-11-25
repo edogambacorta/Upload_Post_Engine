@@ -1,0 +1,54 @@
+{
+  "id": "2025-11-24T14-42-39-935Z",
+  "status": "DONE",
+  "topic": "sleep tips",
+  "count": 1,
+  "mode": "mommarketing",
+  "momConfig": {
+    "audience": "first_time_newborn",
+    "stylePreset": "infographic",
+    "aspectRatio": "3:4",
+    "model": "openrouter-sonnet-4.5",
+    "basePrompt": "sleep tips"
+  },
+  "steps": [
+    {
+      "name": "prompts",
+      "status": "done"
+    },
+    {
+      "name": "images",
+      "status": "done"
+    },
+    {
+      "name": "composing",
+      "status": "done"
+    },
+    {
+      "name": "publishing",
+      "status": "pending"
+    }
+  ],
+  "posts": [
+    {
+      "index": 0,
+      "momPost": {
+        "id": "sleep_ftm_0123",
+        "audience": "first_time_newborn",
+        "basePrompt": "sleep tips",
+        "stylePreset": "infographic",
+        "aspectRatio": "3:4",
+        "model": "openrouter-sonnet-4.5",
+        "overlayTitle": "You're not failing at sleep",
+        "overlaySubtitle": "It's 3am. I see you.",
+        "hook": "\"I've tried everything. The books say it should be working by now. What am I doing wrong?\"",
+        "imagePrompt": "Gentle watercolor illustration of dawn breaking through clouds, in soft lavender and coral tones. Abstract shapes suggesting growth and renewal. Minimalist vector style with plenty of white space for text overlay. Clean, calming composition.",
+        "caption": "That crushing weight at 3am when nothing's working? I feel it too. The books make it sound so simple - but they don't see your unique baby, your specific struggles, your exhausted heart.\n\nHere's what's true: Your baby's sleep isn't a reflection of your mothering. You haven't failed. You're in the thick of the hardest part.\n\nLet's do one tiny thing: Next wake-up, before you move, take three breaths. Just three. Not to \"fix\" anything - just to hold space for how hard this is.\n\nBecause you're not doing it wrong. You're doing something incredibly difficult, and you're showing up every time your baby needs you. That's not failure. That's love in its purest form.\n\nYou don't need to become a different mother. This season will pass, and you're exactly who your baby needs.",
+        "cta": "Take a gentle 3-minute moment with me",
+        "safetyFooter": "If you're having thoughts of harming yourself or your baby, please reach out to your healthcare provider or emergency services. You deserve support. You are not alone."
+      },
+      "rawImageUrl": "/runs/2025-11-24T14-42-39-935Z/raw-0.png",
+      "finalImageUrl": "/runs/2025-11-24T14-42-39-935Z/final-0.jpg"
+    }
+  ]
+}

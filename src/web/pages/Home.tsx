@@ -1,12 +1,6 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import RunForm from '../components/RunForm';
-import RunStatus from '../components/RunStatus';
-import RunGallery from '../components/RunGallery';
 
 export function Home() {
-    const [currentRunId, setCurrentRunId] = useState<string | null>(null);
-
     return (
         <div className="space-y-8">
             <div className="flex justify-between items-center">
@@ -24,31 +18,6 @@ export function Home() {
                     <span>&rarr;</span>
                 </Link>
             </div>
-
-            <div className="card bg-gray-800/50 backdrop-blur border-gray-700/50">
-                <h2 className="text-xl font-semibold mb-6 text-white flex items-center gap-2">
-                    <span className="text-2xl">🚀</span> Start New Run
-                </h2>
-                <RunForm onRunStarted={setCurrentRunId} />
-            </div>
-
-            {currentRunId && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="card bg-gray-800/50 backdrop-blur border-gray-700/50">
-                        <h2 className="text-xl font-semibold mb-6 text-white flex items-center gap-2">
-                            <span className="text-2xl">📊</span> Run Status
-                        </h2>
-                        <RunStatus runId={currentRunId} />
-                    </div>
-
-                    <div className="card bg-gray-800/50 backdrop-blur border-gray-700/50">
-                        <h2 className="text-xl font-semibold mb-6 text-white flex items-center gap-2">
-                            <span className="text-2xl">🖼️</span> Gallery
-                        </h2>
-                        <RunGallery runId={currentRunId} />
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

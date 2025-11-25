@@ -118,7 +118,6 @@ export default function EdoPage() {
 
             } else if (time < 350) {
                 // Phase 2: Blur / Transition
-                const blurAmount = (time - 250) / 2;
                 // Note: ctx.filter is not supported in all browsers/contexts efficiently, 
                 // but for this demo it works. Fallback is opacity.
                 ctx.globalAlpha = Math.max(0, 1 - (time - 250) / 50);

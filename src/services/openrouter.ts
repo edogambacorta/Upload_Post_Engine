@@ -65,9 +65,11 @@ Do not include any markdown formatting or other text. Just the XML.
 
 import { MomPost, MomStylePreset, ModelId, AudienceSegment, AspectRatio } from './runOrchestrator';
 
-const MODEL_MAP: Record<ModelId, string> = {
+const MODEL_MAP: Record<string, string> = {
     'openrouter-sonnet-4.5': 'anthropic/claude-3.5-sonnet',
-    'openrouter-gpt-5.1': 'openai/gpt-5.1', // Assuming this is available or fallback to gpt-4o
+    'openrouter-gpt-5.1': 'openai/gpt-4o',
+    'openrouter-gpt-4.1': 'openai/gpt-4-turbo',
+    'openrouter-gpt-5.1-thinking': 'openai/o1-preview',
 };
 
 const STYLE_PRESETS: Record<MomStylePreset, string> = {
@@ -155,7 +157,7 @@ Generate ${config.count} posts.
 Base Prompt/Topic: "${config.basePrompt}"
 Audience: ${config.audience}
 Style Preset: ${config.stylePreset} (${stylePrompt})
-Aspect Ratio: ${config.aspectRatio}
+AspectRatio: ${config.aspectRatio}
 
 Remember the XML format.
 `;
