@@ -59,19 +59,32 @@
   background: #475569;
 }
 
-/* Batch generator selects */
-.batch-generator select {
+/* Idea generator selects */
+.idea-generator select {
   background-color: #0f172a;
   color: #f8fafc;
   border-color: #1f2937;
 }
 
-.batch-generator select:focus {
+.idea-generator select:focus {
   border-color: #3b82f6;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
 }
 
-.batch-generator select option {
+.idea-generator select option {
   background-color: #0f172a;
   color: #f8fafc;
+}
+
+/* Date and Time Input Icons - Force white color for dark theme */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+/* For Firefox */
+input[type="date"],
+input[type="time"] {
+  color-scheme: dark;
 }

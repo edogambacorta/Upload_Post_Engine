@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(node -e:*)",
+      "Bash(cat:*)",
+      "Bash(env)",
+      "Bash(node test-fal-config.js:*)",
+      "Bash(node test-fal-config.cjs:*)",
+      "WebSearch",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

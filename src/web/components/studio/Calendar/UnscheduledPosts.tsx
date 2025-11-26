@@ -1,12 +1,14 @@
 import { CalendarPost } from '@/lib/studio/calendarTypes';
-import { ImageIcon, Calendar } from 'lucide-react';
+import { ImageIcon, Calendar, CalendarClock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface UnscheduledPostsProps {
     posts: CalendarPost[];
     onSchedule: (postId: string, runId: string, date: Date) => void;
+    onOpenScheduleDialog: (post: CalendarPost) => void;
 }
 
-export function UnscheduledPosts({ posts, onSchedule }: UnscheduledPostsProps) {
+export function UnscheduledPosts({ posts, onSchedule, onOpenScheduleDialog }: UnscheduledPostsProps) {
     const handleScheduleToday = (post: CalendarPost) => {
         const today = new Date();
         today.setHours(10, 0, 0, 0); // Default to 10 AM
@@ -67,12 +69,29 @@ export function UnscheduledPosts({ posts, onSchedule }: UnscheduledPostsProps) {
                                 <p className="text-xs text-gray-400 truncate mb-2">
                                     {post.topic}
                                 </p>
-                                <button
-                                    onClick={() => handleScheduleToday(post)}
-                                    className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
-                                >
-                                    Schedule for today
-                                </button>
+                                <div className="flex gap-2">
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onOpenScheduleDialog(post);
+                                        }}
+                                        className="h-7 px-2 text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-900/20"
+                                    >
+                                        <CalendarClock className="w-3 h-3 mr-1" />
+                                        Schedule
+                                    </Button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleScheduleToday(post);
+                                        }}
+                                        className="text-xs text-gray-400 hover:text-gray-300 transition-colors"
+                                    >
+                                        Today 10AM
+                                    </button>
+                                </div>
                             </div>
                         </div>
 

@@ -70,6 +70,11 @@ export type RunState = {
         publish?: {
             [key in 'tiktok' | 'instagram']?: { status: string; url?: string };
         };
+        studio?: {
+            textBox?: any;
+            imageTransform?: any;
+            thumbnailUrl?: string;
+        };
     }[];
     error?: string;
 };
@@ -161,18 +166,30 @@ export class RunOrchestrator {
     }
 
     getAllRuns(): RunState[] {
+        console.log('[Orchestrator] getAllRuns() called');
+        console.log(`[Orchestrator] RUNS_DIR path: ${RUNS_DIR}`);
+        console.log(`[Orchestrator] RUNS_DIR exists: ${fs.existsSync(RUNS_DIR)}`);
+
         const runs: RunState[] = [];
         if (fs.existsSync(RUNS_DIR)) {
             const entries = fs.readdirSync(RUNS_DIR, { withFileTypes: true });
+            console.log(`[Orchestrator] Found ${entries.length} entries in RUNS_DIR`);
+
             for (const entry of entries) {
+                console.log(`  - Entry: ${entry.name}, isDirectory: ${entry.isDirectory()}`);
                 if (entry.isDirectory()) {
                     const state = this.getRunState(entry.name);
                     if (state) {
+                        console.log(`    ✓ Loaded run: ${state.id} (mode: ${state.mode}, status: ${state.status})`);
                         runs.push(state);
+                    } else {
+                        console.log(`    ✗ Failed to load run state for: ${entry.name}`);
                     }
                 }
             }
         }
+
+        console.log(`[Orchestrator] Total runs loaded: ${runs.length}`);
         // Sort by creation time (newest first) - assuming ID is timestamp based
         return runs.sort((a, b) => b.id.localeCompare(a.id));
     }

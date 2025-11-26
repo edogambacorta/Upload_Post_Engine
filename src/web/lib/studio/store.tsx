@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
-import { StudioState, PostType, Slide, PreviewMode, CompositionMode, SlideTemplate } from './types';
+import { StudioState, PostType, Slide, PreviewMode, CompositionMode, SlideTemplate, AspectRatio, ViewportState, ExportFrameConfig, PostDetails } from './types';
+import { createExportFrameConfig } from './aspectRatioUtils';
 
 type Action =
     | { type: 'SET_MODE'; payload: PostType }
@@ -21,7 +22,24 @@ type Action =
     | { type: 'SET_GENERATING'; payload: boolean }
     | { type: 'SET_VIEW'; payload: 'dashboard' | 'editor' | 'batch' }
     | { type: 'SET_EDIT_MODE'; payload: 'text' | 'image' }
-    | { type: 'SET_PREVIEW_MODE'; payload: PreviewMode };
+    | { type: 'SET_PREVIEW_MODE'; payload: PreviewMode }
+    | { type: 'SET_ASPECT_RATIO'; payload: AspectRatio }
+    | { type: 'SET_VIEWPORT'; payload: Partial<ViewportState> }
+    | { type: 'SET_EXPORT_FRAME'; payload: Partial<ExportFrameConfig> }
+    | { type: 'SET_POST_DETAILS'; payload: PostDetails }
+    | { type: 'UPDATE_POST_DETAILS'; payload: Partial<PostDetails> }
+    | { type: 'SET_HAS_GENERATED'; payload: boolean }
+    | { type: 'SET_RUN_ID'; payload: string | null }
+    | { type: 'RESET_STORE' };
+
+const defaultPostDetails: PostDetails = {
+    title: '',
+    description: '',
+    tags: [],
+    music: '',
+    scheduleDate: '',
+    scheduleTime: '',
+};
 
 const initialState: StudioState = {
     mode: 'infographic',
@@ -39,6 +57,20 @@ const initialState: StudioState = {
     view: 'dashboard',
     editMode: 'text',
     previewMode: 'text',
+    aspectRatio: '4:5',
+    exportFrame: {
+        width: 1080,
+        height: 1350,
+        aspectRatio: '4:5',
+    },
+    viewport: {
+        zoom: 1,
+        panX: 0,
+        panY: 0,
+    },
+    postDetails: defaultPostDetails,
+    hasGenerated: false,
+    runId: null,
 };
 
 const StudioContext = createContext<{
@@ -108,6 +140,46 @@ function studioReducer(state: StudioState, action: Action): StudioState {
             return { ...state, editMode: action.payload };
         case 'SET_PREVIEW_MODE':
             return { ...state, previewMode: action.payload };
+        case 'SET_ASPECT_RATIO':
+            return {
+                ...state,
+                aspectRatio: action.payload,
+                exportFrame: createExportFrameConfig(action.payload),
+                // Reset viewport to ensure canvas re-centers on the new aspect ratio
+                viewport: {
+                    zoom: 1,
+                    panX: 0,
+                    panY: 0,
+                },
+            };
+        case 'SET_VIEWPORT':
+            return {
+                ...state,
+                viewport: {
+                    ...state.viewport,
+                    ...action.payload,
+                },
+            };
+        case 'SET_EXPORT_FRAME':
+            return {
+                ...state,
+                exportFrame: {
+                    ...state.exportFrame,
+                    ...action.payload,
+                },
+            };
+        case 'SET_POST_DETAILS':
+            return { ...state, postDetails: action.payload };
+        case 'UPDATE_POST_DETAILS':
+            return { ...state, postDetails: { ...state.postDetails, ...action.payload } };
+        case 'SET_HAS_GENERATED':
+            return { ...state, hasGenerated: action.payload };
+        case 'SET_RUN_ID':
+            return { ...state, runId: action.payload };
+        case 'RESET_STORE':
+            return { ...initialState };
+        default:
+            return state;
     }
 }
 

@@ -1,6 +1,7 @@
 import { CalendarPost, CalendarFilters } from './calendarTypes';
+import { API_BASE_URL } from '../apiConfig';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = API_BASE_URL;
 
 export async function fetchScheduledPosts(
     filters?: CalendarFilters

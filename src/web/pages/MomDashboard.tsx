@@ -33,7 +33,7 @@ export function MomDashboard() {
 
   const fetchRuns = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/runs');
+      const res = await fetch('http://localhost:5000/api/runs');
       if (!res.ok) return;
       const data: RunState[] = await res.json();
       const momRuns = data.filter((run) => run.mode === 'mommarketing');
@@ -57,7 +57,7 @@ export function MomDashboard() {
     config: WizardConfig,
   ): Promise<GeneratedImage[]> => {
     try {
-      const res = await fetch('http://localhost:3000/api/mom-runs', {
+      const res = await fetch('http://localhost:5000/api/mom-runs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -82,7 +82,7 @@ export function MomDashboard() {
 
       let state: RunState | null = null;
       for (let i = 0; i < 60; i += 1) {
-        const runRes = await fetch(`http://localhost:3000/api/runs/${runId}`);
+        const runRes = await fetch(`http://localhost:5000/api/runs/${runId}`);
         if (!runRes.ok) break;
         state = (await runRes.json()) as RunState;
         const hasImages = state.posts.some((p) => p.finalImageUrl || p.rawImageUrl);
@@ -101,7 +101,7 @@ export function MomDashboard() {
           return {
             id: `${runId}:${index}`,
             promptId: prompts[index]?.id ?? String(index),
-            imageUrl: `http://localhost:3000${url}`,
+            imageUrl: `http://localhost:5000${url}`,
             caption: post.momPost?.caption ?? '',
             postId,
             runId,
@@ -120,7 +120,7 @@ export function MomDashboard() {
 
   const openRun = async (runId: string) => {
     try {
-      const res = await fetch(`http://localhost:3000/api/runs/${runId}`);
+      const res = await fetch(`http://localhost:5000/api/runs/${runId}`);
       if (!res.ok) return;
       const state = (await res.json()) as RunState;
       const uiRun = mapRunStateToUi(state);
@@ -141,7 +141,7 @@ export function MomDashboard() {
   const regeneratePost = async (postId: string) => {
     if (!selectedRunId) return;
     try {
-      await fetch(`http://localhost:3000/api/mom-runs/${selectedRunId}/regenerate-images`, {
+      await fetch(`http://localhost:5000/api/mom-runs/${selectedRunId}/regenerate-images`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ postIds: [postId] }),
@@ -155,7 +155,7 @@ export function MomDashboard() {
     const confirmed = window.confirm('Delete this run and all of its assets? This cannot be undone.');
     if (!confirmed) return;
     try {
-      const res = await fetch(`http://localhost:3000/api/mom-runs/${runId}`, {
+      const res = await fetch(`http://localhost:5000/api/mom-runs/${runId}`, {
         method: 'DELETE',
       });
       if (!res.ok) {
@@ -185,7 +185,7 @@ export function MomDashboard() {
       );
     }
     try {
-      const res = await fetch(`http://localhost:3000/api/mom-runs/${runId}/posts/${postId}/schedule`, {
+      const res = await fetch(`http://localhost:5000/api/mom-runs/${runId}/posts/${postId}/schedule`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scheduledDate }),
@@ -291,7 +291,7 @@ function mapRunStateToUi(run: RunState): MomUiRun {
     .map((p) => p.finalImageUrl || p.rawImageUrl)
     .filter((url): url is string => !!url)
     .slice(0, 3)
-    .map((url) => `http://localhost:3000${url}`);
+    .map((url) => `http://localhost:5000${url}`);
 
   return {
     id: run.id,

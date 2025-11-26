@@ -1,4 +1,4 @@
-export type PostType = 'infographic' | 'carousel' | 'batch';
+export type PostType = 'infographic' | 'carousel' | 'ideas';
 export type CompositionMode = 'single' | 'slideshow';
 
 export interface SceneTemplate {
@@ -52,6 +52,9 @@ export interface Slide {
         fill?: string;
         backgroundColor?: string;
         textAlign?: 'left' | 'center' | 'right';
+        angle?: number;
+        scaleX?: number;
+        scaleY?: number;
     };
     imageTransform?: {
         left: number;
@@ -59,7 +62,25 @@ export interface Slide {
         scaleX: number;
         scaleY: number;
     };
+    imageFilters?: {
+        saturation?: number;
+        brightness?: number;
+        contrast?: number;
+        blur?: number;
+        noise?: number;
+        pixelate?: number;
+    };
     imageHistory?: string[];
+    thumbnailUrl?: string;
+}
+
+export interface PostDetails {
+    title: string;
+    description: string;
+    tags: string[];
+    music: string;
+    scheduleDate?: string;
+    scheduleTime?: string;
 }
 
 export interface StudioState {
@@ -78,8 +99,26 @@ export interface StudioState {
     view: 'dashboard' | 'editor' | 'batch';
     editMode: 'text' | 'image';
     previewMode: PreviewMode;
+    aspectRatio: AspectRatio;
+    viewport: ViewportState;
+    exportFrame: ExportFrameConfig;
+    postDetails: PostDetails;
+    hasGenerated: boolean;
+    runId: string | null;
 }
-export type AspectRatio = '3:4' | '4:3' | '9:16';
+export type AspectRatio = '1:1' | '3:4' | '4:3' | '4:5' | '9:16' | '16:9';
+
+export interface ViewportState {
+    zoom: number;   // 1.0 = 100%
+    panX: number;   // pixels in canvas space
+    panY: number;
+}
+
+export interface ExportFrameConfig {
+    width: number;       // logical pixels inside Fabric canvas (e.g. 1080)
+    height: number;      // e.g. 1350
+    aspectRatio: AspectRatio;
+}
 
 export interface MomPost {
     id: string;

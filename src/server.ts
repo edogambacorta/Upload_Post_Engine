@@ -5,12 +5,14 @@ import path from 'path';
 import { orchestrator, RunInput } from './services/runOrchestrator';
 import { generateMomMarketingPrompts } from './services/openrouter';
 import { generateImagesForMomPrompts } from './services/fal';
+import galleryRoutes from './server/api/gallery';
+import { galleryService } from './server/services/galleryService';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '5000', 10);
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 
 function isValidFutureDate(value: string) {
     if (typeof value !== 'string') return false;
@@ -28,6 +30,9 @@ app.use(
         },
     })
 );
+
+// Gallery Routes
+app.use('/api/gallery', galleryRoutes);
 
 // API Endpoints
 
@@ -161,7 +166,7 @@ app.post('/api/generate-draft', async (req, res) => {
 // POST /api/generate-visuals
 app.post('/api/generate-visuals', async (req, res) => {
     try {
-        const { slides, imageModel, topic, audience } = req.body;
+        const { slides, imageModel, topic, audience, aspectRatio } = req.body;
 
         if (!slides || !slides.length) {
             return res.status(400).json({ error: 'Slides are required' });
@@ -176,6 +181,10 @@ app.post('/api/generate-visuals', async (req, res) => {
             topic: topic || 'Untitled',
             count: slides.length,
             mode: 'studio',
+            momConfig: {
+                aspectRatio: aspectRatio || '4:5',
+                audience: audience || 'first_time_newborn',
+            },
             steps: [
                 { name: 'Generate Images', status: 'in-progress' }
             ],
@@ -186,7 +195,7 @@ app.post('/api/generate-visuals', async (req, res) => {
                     audience: audience || 'first_time_newborn',
                     basePrompt: topic,
                     stylePreset: 'custom_infographic',
-                    aspectRatio: '3:4',
+                    aspectRatio: aspectRatio || '4:5',
                     model: 'openrouter-gpt-4.1',
                     imageModel: imageModel,
                     overlayTitle: '',
@@ -208,7 +217,7 @@ app.post('/api/generate-visuals', async (req, res) => {
             audience: audience || 'first_time_newborn',
             basePrompt: topic,
             stylePreset: 'custom_infographic',
-            aspectRatio: '3:4',
+            aspectRatio: aspectRatio || '4:5',
             model: 'openrouter-gpt-4.1',
             imageModel: imageModel,
             overlayTitle: '',
@@ -234,6 +243,9 @@ app.post('/api/generate-visuals', async (req, res) => {
         runState.steps[0].status = 'done';
         orchestrator.saveRunState(runId, runState);
 
+        // Update gallery index
+        galleryService.scan().catch(err => console.error('Failed to update gallery index:', err));
+
         // Map results to URLs
         const results = images.map(img => ({
             index: img.index,
@@ -254,10 +266,18 @@ app.post('/api/generate-visuals', async (req, res) => {
 // GET /api/runs - List all runs
 app.get('/api/runs', (_req, res) => {
     try {
+        console.log('[API] GET /api/runs - Fetching all runs...');
         const runs = orchestrator.getAllRuns();
+        console.log(`[API] Found ${runs.length} total runs`);
+
+        // Log details about each run
+        runs.forEach(run => {
+            console.log(`  - Run ID: ${run.id}, Mode: ${run.mode}, Status: ${run.status}, Topic: ${run.topic}`);
+        });
+
         res.json(runs);
     } catch (error: any) {
-        console.error('Error fetching runs:', error);
+        console.error('[API] Error fetching runs:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -272,6 +292,77 @@ app.get('/api/runs/:id', (req, res) => {
     }
 
     res.json(state);
+});
+
+// PATCH /api/runs/:id - Update run metadata
+app.patch('/api/runs/:id', (req, res) => {
+    const runId = req.params.id;
+    const { aspectRatio } = req.body;
+
+    try {
+        const state = orchestrator.getRunState(runId);
+
+        if (!state) {
+            return res.status(404).json({ error: 'Run not found' });
+        }
+
+        // Update momConfig with new aspect ratio
+        if (aspectRatio) {
+            if (!state.momConfig) {
+                state.momConfig = {};
+            }
+            state.momConfig.aspectRatio = aspectRatio;
+
+            // Save updated state
+            orchestrator.saveRunState(runId, state);
+
+            console.log(`[API] Updated aspect ratio for run ${runId} to ${aspectRatio}`);
+        }
+
+        // Update slides (studio state)
+        const { slides } = req.body;
+        if (slides && Array.isArray(slides)) {
+            let updatesCount = 0;
+            slides.forEach((slide: any, index: number) => {
+                // Find corresponding post by ID or index
+                let post = state.posts.find(p => p.momPost?.id === slide.id);
+                if (!post && state.posts[index]) {
+                    post = state.posts[index];
+                }
+
+                if (post) {
+                    // Update studio config
+                    post.studio = {
+                        textBox: slide.textBox,
+                        imageTransform: slide.imageTransform,
+                        thumbnailUrl: slide.thumbnailUrl
+                    };
+
+                    // Also update basic text content if it changed
+                    if (post.momPost) {
+                        post.momPost.caption = slide.text;
+                    }
+
+                    // Update image if changed (strip domain if present)
+                    if (slide.imageUrl) {
+                        // Remove http://localhost:5000 or similar if present
+                        let newPath = slide.imageUrl.replace(/^https?:\/\/[^/]+/, '');
+                        post.rawImageUrl = newPath;
+                        // Clear finalImageUrl if we switched back to a raw image or a different one
+                        delete post.finalImageUrl;
+                    }
+                    updatesCount++;
+                }
+            });
+            console.log(`[API] Updated studio state for ${updatesCount} slides in run ${runId}`);
+            orchestrator.saveRunState(runId, state);
+        }
+
+        res.json({ success: true, aspectRatio: state.momConfig?.aspectRatio });
+    } catch (error: any) {
+        console.error('[API] Error updating run metadata:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // GET /api/scheduled-posts - Get all posts across all runs (scheduled and unscheduled)
@@ -328,7 +419,7 @@ app.get('/api/scheduled-posts', (req, res) => {
                     title: (post.momPost?.caption || post.momPost?.hook || 'Untitled')
                         .substring(0, 50),
                     caption: post.momPost?.caption || '',
-                    imageUrl: imageUrl ? `http://localhost:3000${imageUrl}` : undefined,
+                    imageUrl: imageUrl ? `http://localhost:${PORT}${imageUrl}` : undefined,
                     scheduledDate: post.scheduledDate, // Can be undefined for unscheduled
                     status: postStatus,
                     topic: run.topic,
@@ -362,6 +453,37 @@ app.get('/api/scheduled-posts', (req, res) => {
 //   });
 // }
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Listening on all interfaces (IPv4 and IPv6)`);
 });
+
+// Handle port already in use error
+server.on('error', (error: NodeJS.ErrnoException) => {
+    if (error.code === 'EADDRINUSE') {
+        console.error(`\n❌ Port ${PORT} is already in use.`);
+        console.error(`   Please stop the existing process or change the PORT in your .env file.\n`);
+        process.exit(1);
+    } else {
+        console.error('Server error:', error);
+        process.exit(1);
+    }
+});
+
+// Graceful shutdown
+const shutdown = () => {
+    console.log('\n🛑 Shutting down gracefully...');
+    server.close(() => {
+        console.log('✅ Server closed');
+        process.exit(0);
+    });
+
+    // Force close after 10 seconds
+    setTimeout(() => {
+        console.error('⚠️  Forced shutdown after timeout');
+        process.exit(1);
+    }, 10000);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

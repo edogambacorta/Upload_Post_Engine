@@ -17,9 +17,9 @@ const audienceOptions = [
     { value: 'female_overwhelm', label: 'General Overwhelm' },
 ];
 
-const STORAGE_KEY = 'studio_batch_ideas';
+const STORAGE_KEY = 'studio_idea_generator';
 
-export function BatchGenerator() {
+export function IdeaGenerator() {
     const navigate = useNavigate();
     const { dispatch, state } = useStudio();
     const [topic, setTopic] = useState(state.topic || '');
@@ -44,7 +44,7 @@ export function BatchGenerator() {
         setIsGenerating(true);
         setError(null);
         try {
-            const response = await fetch('http://localhost:3000/api/generate-draft', {
+            const response = await fetch('http://localhost:5000/api/generate-draft', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -100,24 +100,18 @@ export function BatchGenerator() {
     };
 
     return (
-        <div className="batch-generator min-h-screen bg-gray-950 p-8">
-            <div className="max-w-6xl mx-auto">
+        <div className="idea-generator min-h-screen bg-gray-950 p-8">
+            <div>
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-3xl font-bold text-white flex items-center gap-3">
                             <Zap className="w-8 h-8 text-blue-500" />
-                            Batch Generator
+                            Idea Generator
                         </h1>
                         <p className="text-gray-400 mt-2">
                             Turn one master prompt into multiple ready-to-use post ideas.
                         </p>
                     </div>
-                    <button
-                        onClick={() => navigate('/studio')}
-                        className="text-gray-400 hover:text-white transition-colors"
-                    >
-                        Back to Dashboard
-                    </button>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

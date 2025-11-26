@@ -25,21 +25,25 @@ export function MomRunsList() {
 
     const fetchRuns = async () => {
         try {
-            const res = await fetch('http://localhost:3000/api/runs');
+            console.log('[MomRunsList] Fetching runs from API...');
+            const res = await fetch('http://localhost:5000/api/runs');
+            console.log('[MomRunsList] Response status:', res.status);
             const data = await res.json();
+            console.log('[MomRunsList] Received data:', data.length, 'runs');
             // Filter for mommarketing runs
             const momRuns = data.filter((r: RunState) => r.mode === 'mommarketing');
+            console.log('[MomRunsList] Filtered mommarketing runs:', momRuns.length);
             setRuns(momRuns);
             setLoading(false);
         } catch (err) {
-            console.error('Failed to fetch runs:', err);
+            console.error('[MomRunsList] Failed to fetch runs:', err);
             setLoading(false);
         }
     };
 
     const handleRegenerateImage = async (runId: string, postId: string) => {
         try {
-            const res = await fetch(`http://localhost:3000/api/mom-runs/${runId}/regenerate-images`, {
+            const res = await fetch(`http://localhost:5000/api/mom-runs/${runId}/regenerate-images`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ postIds: [postId] }),
@@ -55,7 +59,7 @@ export function MomRunsList() {
     const handleRegeneratePrompts = async (runId: string) => {
         if (!confirm('Are you sure? This will overwrite all current prompts and images for this run.')) return;
         try {
-            const res = await fetch(`http://localhost:3000/api/mom-runs/${runId}/regenerate-prompts`, {
+            const res = await fetch(`http://localhost:5000/api/mom-runs/${runId}/regenerate-prompts`, {
                 method: 'POST',
             });
             if (!res.ok) throw new Error('Failed to regenerate prompts');
@@ -124,13 +128,13 @@ export function MomRunsList() {
                                 <div className="aspect-[3/4] relative bg-slate-950 overflow-hidden">
                                     {post.finalImageUrl ? (
                                         <img
-                                            src={`http://localhost:3000${post.finalImageUrl}`}
+                                            src={`http://localhost:5000${post.finalImageUrl}`}
                                             alt={`Post ${index + 1}`}
                                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                         />
                                     ) : post.rawImageUrl ? (
                                         <img
-                                            src={`http://localhost:3000${post.rawImageUrl}`}
+                                            src={`http://localhost:5000${post.rawImageUrl}`}
                                             alt={`Raw ${index + 1}`}
                                             className="w-full h-full object-cover opacity-50"
                                         />

@@ -1,4 +1,4 @@
-import { PostType, Slide, CompositionMode } from './types';
+import { PostType, Slide, CompositionMode, AspectRatio } from './types';
 
 interface RunPost {
     index: number;
@@ -19,6 +19,11 @@ interface RunPost {
         text?: string;
         prompt?: string;
     };
+    studio?: {
+        textBox?: Slide['textBox'];
+        imageTransform?: Slide['imageTransform'];
+        thumbnailUrl?: string;
+    };
 }
 
 interface RunStateResponse {
@@ -27,11 +32,12 @@ interface RunStateResponse {
     mode?: string;
     momConfig?: {
         audience?: string;
+        aspectRatio?: AspectRatio;
     };
     posts: RunPost[];
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 const resolveImageUrl = (path?: string) => {
     if (!path) return undefined;
@@ -51,15 +57,22 @@ export interface RunHydrationPayload {
     audience: string;
     postType: PostType;
     composition: CompositionMode;
+    aspectRatio?: AspectRatio;
 }
 
 export async function fetchRunState(runId: string): Promise<RunStateResponse> {
-    const res = await fetch(`${API_BASE_URL}/api/runs/${runId}`);
+    const res = await fetch(`${API_BASE_URL}/api/runs/${runId}`, { cache: 'no-store' });
     if (!res.ok) {
         const message = res.status === 404 ? 'Run not found' : 'Failed to load run';
         throw new Error(`${message} (${res.status})`);
     }
-    return res.json();
+    const data = await res.json();
+    console.log('[runLoader] Raw run data from API:', {
+        id: data.id,
+        postCount: data.posts?.length,
+        firstPostStudio: data.posts?.[0]?.studio
+    });
+    return data;
 }
 
 export function normalizeRunToSlides(run: RunStateResponse): Slide[] {
@@ -92,6 +105,9 @@ export function normalizeRunToSlides(run: RunStateResponse): Slide[] {
                 : undefined,
             imageUrl: resolveImageUrl(imagePath),
             status: imagePath ? 'done' : 'draft',
+            textBox: post.studio?.textBox,
+            imageTransform: post.studio?.imageTransform,
+            thumbnailUrl: post.studio?.thumbnailUrl,
         };
     });
 }
@@ -109,5 +125,6 @@ export async function loadRunHydration(runId: string): Promise<RunHydrationPaylo
         audience: run.momConfig?.audience || '',
         postType,
         composition,
+        aspectRatio: run.momConfig?.aspectRatio || '4:5',
     };
 }

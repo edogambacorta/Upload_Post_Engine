@@ -5,8 +5,26 @@ import { PostPrompt } from './openrouter';
 import axios from 'axios';
 
 // Configure fal.ai client with API key
+const falKey = process.env.FAL_KEY || '';
+
+// Log which key is being used (shows first 20 chars for security)
+console.log('\n========================================');
+console.log('🔑 FAL.ai API Key Configuration');
+console.log('========================================');
+if (falKey) {
+    const [keyId, keySecret] = falKey.split(':');
+    console.log('✅ Key loaded from .env');
+    console.log('   Key ID:', keyId);
+    console.log('   Secret:', keySecret ? `${keySecret.substring(0, 6)}...` : 'MISSING');
+    console.log('   Full key length:', falKey.length, 'characters');
+} else {
+    console.log('❌ WARNING: No FAL_KEY found in environment!');
+    console.log('   Image generation will fail.');
+}
+console.log('========================================\n');
+
 fal.config({
-    credentials: process.env.FAL_KEY || '',
+    credentials: falKey,
 });
 
 export type GeneratedImage = {
